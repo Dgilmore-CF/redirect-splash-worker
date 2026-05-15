@@ -1,0 +1,104 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "redirect-splash-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-05-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+
+  // ============================================================
+  // Default environment: Lab (DTG Lab)
+  // ============================================================
+  // To deploy to lab: `wrangler deploy`
+  // Replace <YOUR_ZONE_ID> with your dtg-lab.net zone ID
+  // ============================================================
+  "routes": [
+    {
+      "pattern": "hr.dtg-lab.net",
+      "custom_domain": true
+    },
+    {
+      "pattern": "fs.gmis.dtg-lab.net",
+      "custom_domain": true
+    }
+  ],
+
+  "vars": {
+    "COUNTDOWN_SECONDS": "8",
+    "ENABLE_AB_TESTING": "true",
+    "DEFAULT_LANGUAGE": "en",
+    "ORG_NAME": "DTG Lab",
+    "SUPPORT_EMAIL": "support@dtg-lab.net",
+    "ENVIRONMENT": "lab"
+  },
+
+  // Analytics Engine binding for tracking redirect events
+  // Create dataset in dashboard: Workers & Pages > Analytics Engine
+  "analytics_engine_datasets": [
+    {
+      "binding": "ANALYTICS",
+      "dataset": "redirect_splash_events"
+    }
+  ],
+
+  // ============================================================
+  // Production environment (customer Enterprise zone)
+  // ============================================================
+  // To deploy: `wrangler deploy --env production`
+  // ============================================================
+  "env": {
+    "production": {
+      "name": "redirect-splash-worker-prod",
+      "routes": [
+        {
+          "pattern": "hr.example.com",
+          "custom_domain": true
+        },
+        {
+          "pattern": "fs.example.com",
+          "custom_domain": true
+        }
+      ],
+      "vars": {
+        "COUNTDOWN_SECONDS": "10",
+        "ENABLE_AB_TESTING": "false",
+        "DEFAULT_LANGUAGE": "en",
+        "ORG_NAME": "Your Organization",
+        "SUPPORT_EMAIL": "helpdesk@example.com",
+        "ENVIRONMENT": "production"
+      },
+      "analytics_engine_datasets": [
+        {
+          "binding": "ANALYTICS",
+          "dataset": "redirect_splash_events_prod"
+        }
+      ]
+    },
+    // ============================================================
+    // Simulation environment - mimics legacy + new portals
+    // ============================================================
+    // This deploys the simulation pages so you can test the full
+    // user journey. Deploy with: `wrangler deploy --env simulation`
+    // ============================================================
+    "simulation": {
+      "name": "redirect-splash-simulation",
+      "main": "src/simulation.ts",
+      "routes": [
+        {
+          "pattern": "hcmx.gmis.dtg-lab.net/*",
+          "zone_id": "<YOUR_ZONE_ID>"
+        },
+        {
+          "pattern": "fscmx.gmis.dtg-lab.net/*",
+          "zone_id": "<YOUR_ZONE_ID>"
+        }
+      ],
+      "vars": {
+        "ENVIRONMENT": "simulation"
+      }
+    }
+  }
+}

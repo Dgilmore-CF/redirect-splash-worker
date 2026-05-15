@@ -1,0 +1,37 @@
+{
+  "name": "redirect-splash-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker that displays a professional splash page before redirecting users from legacy URLs to new locations. Includes bookmark helpers, A/B testing, analytics, multi-language support, and dark mode.",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "dev:local": "wrangler dev --local",
+    "deploy": "wrangler deploy",
+    "deploy:lab": "bash scripts/deploy-lab.sh",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,js,json}\"",
+    "tail": "wrangler tail",
+    "kv:create": "wrangler kv namespace create REDIRECT_CONFIG",
+    "kv:create:preview": "wrangler kv namespace create REDIRECT_CONFIG --preview"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "redirect",
+    "splash-page",
+    "migration",
+    "bookmark"
+  ],
+  "author": "DTG Lab",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.5.0",
+    "@cloudflare/workers-types": "^4.20250515.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0",
+    "wrangler": "^4.0.0"
+  }
+}

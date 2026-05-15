@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+.pnpm-debug.log
+yarn-error.log
+npm-debug.log*
+
+# Wrangler / Cloudflare
+.wrangler/
+.dev.vars
+.dev.vars.*
+wrangler.toml.bak
+
+# Build artifacts
+dist/
+build/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Testing
+coverage/
+.nyc_output/
+
+# Local zone config overrides (contains real zone IDs)
+wrangler.local.jsonc
