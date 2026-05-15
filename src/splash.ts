@@ -1,17 +1,21 @@
 /**
- * Splash page HTML generator.
+ * Splash page HTML generator — COMPACT BANNER STYLE.
  *
- * Produces a self-contained HTML document (no external assets,
- * no CDN dependencies) so the page renders instantly. Inline CSS
- * follows a professional government/enterprise visual style:
+ * Renders a tight notice banner pinned at the top of the viewport
+ * (no scrolling required). All key information — service name, new URL,
+ * copy button, countdown, continue button, bookmark hint, opt-out — fits
+ * inside ~140px of vertical space at common viewport widths.
  *
- *   - Sans-serif system fonts (no web font downloads)
- *   - Conservative color palette: deep navy, slate gray, white
- *   - Strong typographic hierarchy
- *   - Clear, accessible focus rings and color contrast
- *   - Server-rendered SVG icons (no emoji in the main UI)
+ * Design principles:
+ *   - Single, professional sans-serif (system stack — no web fonts)
+ *   - Conservative palette (deep navy, slate gray, white)
+ *   - All actionable elements above the fold, no scrolling needed
+ *   - Inline SVG icons, no emoji in core UI
+ *   - Server-rendered, fully self-contained (no external assets)
  *
- * Three layout variants are supported (A/B/C) selected by themes.ts.
+ * Three layout variants are still supported (A/B/C) but they are all
+ * compact — they differ in density, label placement, and visual weight,
+ * not in overall page footprint.
  */
 
 import type { SplashOptions, SupportedLanguage } from './types.js';
@@ -24,76 +28,49 @@ export function renderSplash(opts: SplashOptions): string {
   const t = translations[opts.language];
   const { config, legacyHost, countdownSeconds, variant, theme } = opts;
 
-  // ---- Common values used across variants ------------------------------
   const newUrl = escapeHtml(config.newUrl);
   const newUrlJs = escapeJs(config.newUrl);
   const serviceName = escapeHtml(config.serviceName);
-  const description = escapeHtml(config.description);
   const legacyHostHtml = escapeHtml(legacyHost);
   const orgNameHtml = escapeHtml(opts.orgName);
   const supportEmailHtml = escapeHtml(opts.supportEmail);
-  const languageHtml = opts.language;
-  const variantHtml = variant;
   const themeAttr = theme === 'auto' ? '' : ` data-theme="${theme}"`;
-
-  // Storage key namespaced by host so different services don't share state
   const storageKey = `redirectSplash:hide:${legacyHost}`;
 
-  // ---- HTML body -------------------------------------------------------
   return `<!DOCTYPE html>
-<html lang="${languageHtml}"${themeAttr}>
+<html lang="${opts.language}"${themeAttr}>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>${escapeHtml(format(t.pageTitle, { serviceName: config.serviceName }))}</title>
   <style>${styles()}</style>
 </head>
-<body data-variant="${variantHtml}">
+<body data-variant="${variant}">
   <a href="#main" class="skip-link">Skip to main content</a>
 
-  <header class="top-bar" role="banner">
-    <div class="container top-bar__inner">
-      <div class="brand">
-        ${officialMarkSvg()}
-        <span class="brand__name">${orgNameHtml}</span>
-      </div>
-      <div class="top-bar__controls">
-        ${languageSelector(opts.language)}
-        ${themeToggle(t)}
-      </div>
-    </div>
-  </header>
-
-  <main id="main" class="container main" role="main">
+  <div class="banner" role="alert" aria-labelledby="banner-title">
     ${renderVariant(variant, {
       t,
       serviceName,
-      description,
       newUrl,
       legacyHostHtml,
       countdownSeconds,
       icon: iconSvg(config.icon),
+      orgName: orgNameHtml,
+      supportEmail: supportEmailHtml,
+      language: opts.language,
     })}
+  </div>
 
-    <section class="card help-card" aria-labelledby="help-heading">
-      <h2 id="help-heading">${escapeHtml(t.helpHeading)}</h2>
-      <p>${escapeHtml(t.helpBody)}</p>
-      <p class="help-card__contact">
-        ${escapeHtml(format(t.supportContact, { email: opts.supportEmail }))
-          .replace(supportEmailHtml, `<a href="mailto:${supportEmailHtml}">${supportEmailHtml}</a>`)}
-      </p>
-    </section>
+  <main id="main" class="page-body">
+    <p class="muted small">
+      ${escapeHtml(format(t.poweredBy, { org: opts.orgName }))}
+      <span class="sep">·</span>
+      <a href="mailto:${supportEmailHtml}">${supportEmailHtml}</a>
+    </p>
   </main>
-
-  <footer class="footer" role="contentinfo">
-    <div class="container footer__inner">
-      <span>${escapeHtml(format(t.poweredBy, { org: opts.orgName }))}</span>
-      <span class="footer__meta">v=${variantHtml} · ${languageHtml}</span>
-    </div>
-  </footer>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
@@ -103,7 +80,7 @@ export function renderSplash(opts: SplashOptions): string {
     storageKey: escapeJs(storageKey),
     legacyHost: escapeJs(legacyHost),
     variant,
-    language: languageHtml,
+    language: opts.language,
     copiedMessage: escapeJs(t.copied),
   })}</script>
 </body>
@@ -111,17 +88,19 @@ export function renderSplash(opts: SplashOptions): string {
 }
 
 // ---------------------------------------------------------------------------
-//  Variant-specific layouts
+//  Variant-specific layouts (all compact)
 // ---------------------------------------------------------------------------
 
 interface VariantContext {
   t: (typeof translations)[SupportedLanguage];
   serviceName: string;
-  description: string;
   newUrl: string;
   legacyHostHtml: string;
   countdownSeconds: number;
   icon: string;
+  orgName: string;
+  supportEmail: string;
+  language: SupportedLanguage;
 }
 
 function renderVariant(variant: 'A' | 'B' | 'C', ctx: VariantContext): string {
@@ -135,201 +114,143 @@ function renderVariant(variant: 'A' | 'B' | 'C', ctx: VariantContext): string {
   }
 }
 
-// Variant A — Minimalist
+// Variant A — Minimalist horizontal strip
 function variantA(ctx: VariantContext): string {
   return `
-    <section class="card notice-card variant-a" aria-labelledby="notice-heading">
-      <div class="notice-card__icon">${ctx.icon}</div>
-      <h1 id="notice-heading">${escapeHtml(ctx.t.noticeHeading)}</h1>
-      <p class="notice-card__lede">${escapeHtml(
-        format(ctx.t.noticeSubheading, { serviceName: ctx.serviceName }),
-      )}</p>
-
-      <div class="url-box">
-        <span class="url-box__label">${escapeHtml(ctx.t.newUrlLabel)}</span>
-        <a class="url-box__link" id="new-url-link" href="${ctx.newUrl}">${ctx.newUrl}</a>
-        <button class="url-box__copy" type="button" id="copy-url" aria-label="${escapeHtml(ctx.t.copyLinkLabel)}">
-          ${copySvg()} <span>${escapeHtml(ctx.t.copyButton)}</span>
-        </button>
+    <div class="banner__inner variant-a">
+      <div class="banner__icon" aria-hidden="true">${ctx.icon}</div>
+      <div class="banner__content">
+        <div class="banner__row1">
+          <strong id="banner-title">${escapeHtml(ctx.t.noticeHeading)}</strong>
+          <span class="banner__sep">·</span>
+          <span>${ctx.serviceName}</span>
+        </div>
+        <div class="banner__row2">
+          <span class="muted">${escapeHtml(ctx.t.newUrlLabel)}:</span>
+          <a class="url" id="new-url-link" href="${ctx.newUrl}">${ctx.newUrl}</a>
+          <button class="btn-mini" type="button" id="copy-url" aria-label="${escapeHtml(ctx.t.copyLinkLabel)}" title="${escapeHtml(ctx.t.copyButton)}">${copySvg()}</button>
+          <a class="btn-mini" id="bookmarklet" href="${ctx.newUrl}" title="${escapeHtml(ctx.t.bookmarkHeading)}: ${ctx.serviceName}">${bookmarkSvg()}</a>
+        </div>
       </div>
-
-      <div class="countdown" role="status" aria-live="polite">
-        <span>${escapeHtml(ctx.t.redirectingIn)}</span>
-        <span class="countdown__num" id="countdown">${ctx.countdownSeconds}</span>
-        <span>${escapeHtml(ctx.t.seconds)}</span>
-      </div>
-
-      <div class="actions">
+      <div class="banner__actions">
+        <span class="countdown" role="status" aria-live="polite">
+          <span id="countdown">${ctx.countdownSeconds}</span><span class="muted">s</span>
+        </span>
         <a class="btn btn--primary" id="go-now" href="${ctx.newUrl}">
           ${escapeHtml(ctx.t.goNowButton)} ${arrowSvg()}
         </a>
+        ${controlsBlock(ctx)}
       </div>
-
-      ${bookmarkBlock(ctx)}
-      ${dontShowAgainBlock(ctx)}
-    </section>
+    </div>
+    ${dontShowAgainRow(ctx)}
   `;
 }
 
-// Variant B — Detailed step-by-step
+// Variant B — Two-line detailed compact
 function variantB(ctx: VariantContext): string {
   return `
-    <section class="card notice-card variant-b" aria-labelledby="notice-heading">
-      <div class="notice-card__header">
-        <div class="notice-card__icon">${ctx.icon}</div>
-        <div>
-          <h1 id="notice-heading">${escapeHtml(ctx.t.noticeHeading)}</h1>
-          <p class="notice-card__lede">${escapeHtml(
-            format(ctx.t.noticeSubheading, { serviceName: ctx.serviceName }),
-          )}</p>
+    <div class="banner__inner variant-b">
+      <div class="banner__icon" aria-hidden="true">${ctx.icon}</div>
+      <div class="banner__content">
+        <div class="banner__row1">
+          <strong id="banner-title">${escapeHtml(ctx.t.noticeHeading)}</strong>
+          <span class="banner__sep">·</span>
+          <span>${ctx.serviceName}</span>
+          <span class="banner__sep">·</span>
+          <span class="muted small">${escapeHtml(ctx.t.legacyUrlLabel)}: <code>${ctx.legacyHostHtml}</code></span>
+        </div>
+        <div class="banner__row2">
+          <span class="muted">${escapeHtml(ctx.t.newUrlLabel)}:</span>
+          <a class="url" id="new-url-link" href="${ctx.newUrl}">${ctx.newUrl}</a>
+          <button class="btn-mini" type="button" id="copy-url" aria-label="${escapeHtml(ctx.t.copyLinkLabel)}" title="${escapeHtml(ctx.t.copyButton)}">${copySvg()}</button>
+          <a class="btn-mini" id="bookmarklet" href="${ctx.newUrl}" title="${escapeHtml(ctx.t.bookmarkHeading)}: ${ctx.serviceName}">${bookmarkSvg()}</a>
+          <span class="muted small bookmark-hint">
+            <kbd>${escapeHtml(ctx.t.shortcutKey)}</kbd> ${escapeHtml(ctx.t.shortcutHint)}
+          </span>
         </div>
       </div>
-
-      <p class="notice-card__description">${ctx.description}</p>
-
-      <div class="legacy-row">
-        <span class="legacy-row__label">${escapeHtml(ctx.t.legacyUrlLabel)}:</span>
-        <code>${ctx.legacyHostHtml}</code>
-      </div>
-
-      <ol class="steps">
-        <li>
-          <strong>${escapeHtml(ctx.t.newUrlLabel)}</strong>
-          <div class="url-box">
-            <a class="url-box__link" id="new-url-link" href="${ctx.newUrl}">${ctx.newUrl}</a>
-            <button class="url-box__copy" type="button" id="copy-url" aria-label="${escapeHtml(ctx.t.copyLinkLabel)}">
-              ${copySvg()} <span>${escapeHtml(ctx.t.copyButton)}</span>
-            </button>
-          </div>
-        </li>
-        <li>
-          <strong>${escapeHtml(ctx.t.bookmarkHeading)}</strong>
-          <p>${escapeHtml(ctx.t.bookmarkInstructionsDetail)}</p>
-          <p class="bookmark-shortcut">
-            <kbd>${escapeHtml(ctx.t.shortcutKey)}</kbd>
-            <span class="muted">${escapeHtml(ctx.t.shortcutHint)}</span>
-          </p>
-          <p class="bookmarklet-hint">${escapeHtml(ctx.t.bookmarkletDragHint)}</p>
-          <a class="bookmarklet" id="bookmarklet"
-             href="${ctx.newUrl}"
-             title="${escapeHtml(ctx.serviceName)}">
-            ${bookmarkSvg()} ${escapeHtml(ctx.serviceName)}
-          </a>
-        </li>
-      </ol>
-
-      <div class="countdown" role="status" aria-live="polite">
-        <span>${escapeHtml(ctx.t.redirectingIn)}</span>
-        <span class="countdown__num" id="countdown">${ctx.countdownSeconds}</span>
-        <span>${escapeHtml(ctx.t.seconds)}</span>
-      </div>
-
-      <div class="actions">
+      <div class="banner__actions">
+        <span class="countdown" role="status" aria-live="polite">
+          <span id="countdown">${ctx.countdownSeconds}</span><span class="muted">s</span>
+        </span>
         <a class="btn btn--primary" id="go-now" href="${ctx.newUrl}">
           ${escapeHtml(ctx.t.goNowButton)} ${arrowSvg()}
         </a>
+        ${controlsBlock(ctx)}
       </div>
-
-      ${dontShowAgainBlock(ctx)}
-    </section>
+    </div>
+    ${dontShowAgainRow(ctx)}
   `;
 }
 
-// Variant C — Government formal
+// Variant C — Formal government-style with eyebrow + accent bar
 function variantC(ctx: VariantContext): string {
   return `
-    <section class="card notice-card variant-c" aria-labelledby="notice-heading">
-      <div class="formal-header">
-        <div class="formal-seal">${ctx.icon}</div>
-        <div>
-          <p class="formal-eyebrow">${escapeHtml(ctx.t.noticeHeading).toUpperCase()}</p>
-          <h1 id="notice-heading">${ctx.serviceName}</h1>
+    <div class="banner__inner variant-c">
+      <div class="banner__accent" aria-hidden="true"></div>
+      <div class="banner__icon" aria-hidden="true">${ctx.icon}</div>
+      <div class="banner__content">
+        <div class="banner__row1">
+          <span class="eyebrow">${escapeHtml(ctx.t.noticeHeading).toUpperCase()}</span>
+          <span class="banner__sep">·</span>
+          <strong id="banner-title">${ctx.serviceName}</strong>
+        </div>
+        <div class="banner__row2">
+          <span class="muted">${escapeHtml(ctx.t.newUrlLabel)}:</span>
+          <a class="url" id="new-url-link" href="${ctx.newUrl}">${ctx.newUrl}</a>
+          <button class="btn-mini" type="button" id="copy-url" aria-label="${escapeHtml(ctx.t.copyLinkLabel)}" title="${escapeHtml(ctx.t.copyButton)}">${copySvg()}</button>
+          <a class="btn-mini" id="bookmarklet" href="${ctx.newUrl}" title="${escapeHtml(ctx.t.bookmarkHeading)}: ${ctx.serviceName}">${bookmarkSvg()}</a>
         </div>
       </div>
-
-      <div class="formal-divider"></div>
-
-      <p class="notice-card__lede">${escapeHtml(
-        format(ctx.t.noticeSubheading, { serviceName: ctx.serviceName }),
-      )}</p>
-
-      <p class="notice-card__description">${ctx.description}</p>
-
-      <dl class="formal-grid">
-        <dt>${escapeHtml(ctx.t.legacyUrlLabel)}</dt>
-        <dd><code>https://${ctx.legacyHostHtml}/</code></dd>
-        <dt>${escapeHtml(ctx.t.newUrlLabel)}</dt>
-        <dd>
-          <div class="url-box">
-            <a class="url-box__link" id="new-url-link" href="${ctx.newUrl}">${ctx.newUrl}</a>
-            <button class="url-box__copy" type="button" id="copy-url" aria-label="${escapeHtml(ctx.t.copyLinkLabel)}">
-              ${copySvg()} <span>${escapeHtml(ctx.t.copyButton)}</span>
-            </button>
-          </div>
-        </dd>
-      </dl>
-
-      <div class="countdown countdown--formal" role="status" aria-live="polite">
-        <span>${escapeHtml(ctx.t.redirectingIn)}</span>
-        <span class="countdown__num" id="countdown">${ctx.countdownSeconds}</span>
-        <span>${escapeHtml(ctx.t.seconds)}</span>
-      </div>
-
-      <div class="actions">
+      <div class="banner__actions">
+        <span class="countdown" role="status" aria-live="polite">
+          <span id="countdown">${ctx.countdownSeconds}</span><span class="muted">s</span>
+        </span>
         <a class="btn btn--primary" id="go-now" href="${ctx.newUrl}">
           ${escapeHtml(ctx.t.goNowButton)} ${arrowSvg()}
         </a>
+        ${controlsBlock(ctx)}
       </div>
-
-      ${bookmarkBlock(ctx)}
-      ${dontShowAgainBlock(ctx)}
-    </section>
+    </div>
+    ${dontShowAgainRow(ctx)}
   `;
 }
 
 // ---------------------------------------------------------------------------
-//  Shared component fragments
+//  Shared fragments
 // ---------------------------------------------------------------------------
 
-function bookmarkBlock(ctx: VariantContext): string {
+function dontShowAgainRow(ctx: VariantContext): string {
   return `
-    <div class="bookmark-block">
-      <h3>${escapeHtml(ctx.t.bookmarkHeading)}</h3>
-      <p>${escapeHtml(ctx.t.bookmarkInstructions)}</p>
-      <p class="bookmark-shortcut">
-        <kbd>${escapeHtml(ctx.t.shortcutKey)}</kbd>
-        <span class="muted">${escapeHtml(ctx.t.shortcutHint)}</span>
-      </p>
-      <p class="bookmarklet-hint">${escapeHtml(ctx.t.bookmarkletDragHint)}</p>
-      <a class="bookmarklet" id="bookmarklet"
-         href="${ctx.newUrl}"
-         title="${escapeHtml(ctx.serviceName)}">
-        ${bookmarkSvg()} ${escapeHtml(ctx.serviceName)}
-      </a>
+    <div class="banner__footer">
+      <label class="dsa">
+        <input type="checkbox" id="hide-splash">
+        <span>${escapeHtml(ctx.t.dontShowAgain)}</span>
+      </label>
+      <span class="muted small org-badge">${ctx.orgName}</span>
     </div>
   `;
 }
 
-function dontShowAgainBlock(ctx: VariantContext): string {
+function controlsBlock(ctx: VariantContext): string {
   return `
-    <label class="dont-show-again">
-      <input type="checkbox" id="hide-splash">
-      <span>${escapeHtml(ctx.t.dontShowAgain)}</span>
-    </label>
-    <p class="dont-show-again__hint muted">${escapeHtml(ctx.t.dontShowAgainHint)}</p>
+    <div class="controls">
+      ${languageSelector(ctx.language)}
+      ${themeToggle(ctx.t)}
+    </div>
   `;
 }
 
 function languageSelector(active: SupportedLanguage): string {
   const langs: Array<[SupportedLanguage, string]> = [
-    ['en', 'English'],
-    ['es', 'Español'],
-    ['fr', 'Français'],
-    ['de', 'Deutsch'],
-    ['pt', 'Português'],
-    ['ja', '日本語'],
+    ['en', 'EN'],
+    ['es', 'ES'],
+    ['fr', 'FR'],
+    ['de', 'DE'],
+    ['pt', 'PT'],
+    ['ja', 'JA'],
   ];
-  return `<select class="lang-select" id="lang-select" aria-label="Language">
+  return `<select class="ctrl-select" id="lang-select" aria-label="Language">
     ${langs
       .map(
         ([code, label]) =>
@@ -340,10 +261,10 @@ function languageSelector(active: SupportedLanguage): string {
 }
 
 function themeToggle(t: (typeof translations)[SupportedLanguage]): string {
-  return `<select class="theme-select" id="theme-select" aria-label="${escapeHtml(t.themeToggle)}">
-    <option value="auto">${escapeHtml(t.themeAuto)}</option>
-    <option value="light">${escapeHtml(t.themeLight)}</option>
-    <option value="dark">${escapeHtml(t.themeDark)}</option>
+  return `<select class="ctrl-select" id="theme-select" aria-label="${escapeHtml(t.themeToggle)}">
+    <option value="auto">A</option>
+    <option value="light">☀</option>
+    <option value="dark">☾</option>
   </select>`;
 }
 
@@ -351,593 +272,408 @@ function themeToggle(t: (typeof translations)[SupportedLanguage]): string {
 //  Inline SVG icons
 // ---------------------------------------------------------------------------
 
-function officialMarkSvg(): string {
-  return `<svg class="brand__mark" viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
-    <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="1.5"/>
-    <path d="M16 7 L20 16 L16 25 L12 16 Z" fill="currentColor"/>
-    <circle cx="16" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
-  </svg>`;
-}
-
 function iconSvg(name: 'people' | 'finance' | 'document' | 'generic'): string {
   switch (name) {
     case 'people':
-      return `<svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true">
-        <circle cx="24" cy="16" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
-        <path d="M10 40c0-7.732 6.268-14 14-14s14 6.268 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      return `<svg viewBox="0 0 48 48" width="32" height="32" aria-hidden="true">
+        <circle cx="24" cy="16" r="7" fill="none" stroke="currentColor" stroke-width="2.5"/>
+        <path d="M10 40c0-7.732 6.268-14 14-14s14 6.268 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
       </svg>`;
     case 'finance':
-      return `<svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true">
-        <rect x="6" y="18" width="36" height="22" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-        <path d="M6 14 L24 6 L42 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-        <line x1="12" y1="22" x2="12" y2="36" stroke="currentColor" stroke-width="2"/>
-        <line x1="24" y1="22" x2="24" y2="36" stroke="currentColor" stroke-width="2"/>
-        <line x1="36" y1="22" x2="36" y2="36" stroke="currentColor" stroke-width="2"/>
+      return `<svg viewBox="0 0 48 48" width="32" height="32" aria-hidden="true">
+        <rect x="6" y="18" width="36" height="22" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/>
+        <path d="M6 14 L24 6 L42 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+        <line x1="14" y1="22" x2="14" y2="36" stroke="currentColor" stroke-width="2.5"/>
+        <line x1="24" y1="22" x2="24" y2="36" stroke="currentColor" stroke-width="2.5"/>
+        <line x1="34" y1="22" x2="34" y2="36" stroke="currentColor" stroke-width="2.5"/>
       </svg>`;
     case 'document':
-      return `<svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true">
-        <path d="M12 6 H30 L38 14 V42 H12 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M30 6 V14 H38" fill="none" stroke="currentColor" stroke-width="2"/>
-        <line x1="18" y1="22" x2="32" y2="22" stroke="currentColor" stroke-width="2"/>
-        <line x1="18" y1="28" x2="32" y2="28" stroke="currentColor" stroke-width="2"/>
-        <line x1="18" y1="34" x2="26" y2="34" stroke="currentColor" stroke-width="2"/>
+      return `<svg viewBox="0 0 48 48" width="32" height="32" aria-hidden="true">
+        <path d="M12 6 H30 L38 14 V42 H12 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M30 6 V14 H38" fill="none" stroke="currentColor" stroke-width="2.5"/>
       </svg>`;
     default:
-      return `<svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true">
-        <circle cx="24" cy="24" r="18" fill="none" stroke="currentColor" stroke-width="2"/>
-        <path d="M24 14 V26 L32 30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      return `<svg viewBox="0 0 48 48" width="32" height="32" aria-hidden="true">
+        <circle cx="24" cy="24" r="18" fill="none" stroke="currentColor" stroke-width="2.5"/>
+        <path d="M24 14 V26 L32 30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
       </svg>`;
   }
 }
 
 function copySvg(): string {
-  return `<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+  return `<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
     <rect x="4" y="4" width="10" height="10" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
     <path d="M2 12 V3 a1 1 0 0 1 1 -1 H11" fill="none" stroke="currentColor" stroke-width="1.5"/>
   </svg>`;
 }
 
 function arrowSvg(): string {
-  return `<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+  return `<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
     <path d="M3 8 H13 M9 4 L13 8 L9 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>`;
 }
 
 function bookmarkSvg(): string {
-  return `<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+  return `<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
     <path d="M4 2 H12 V14 L8 11 L4 14 Z" fill="currentColor"/>
   </svg>`;
 }
 
 // ---------------------------------------------------------------------------
-//  CSS — professional government / enterprise styling
+//  CSS — compact banner styling
 // ---------------------------------------------------------------------------
 
 function styles(): string {
   return `
     :root {
-      --color-bg: #f4f5f7;
-      --color-surface: #ffffff;
-      --color-surface-2: #f9fafb;
-      --color-text: #1a202c;
-      --color-text-muted: #4a5568;
-      --color-border: #e2e8f0;
-      --color-border-strong: #cbd5e0;
-      --color-primary: #1a365d;
-      --color-primary-hover: #2c5282;
-      --color-accent: #2b6cb0;
-      --color-success: #276749;
-      --color-warning: #c05621;
-      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
-      --radius-sm: 4px;
-      --radius-md: 6px;
-      --radius-lg: 8px;
-      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-                   "Helvetica Neue", Arial, sans-serif;
-      --font-mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      --bg: #f4f5f7;
+      --surface: #ffffff;
+      --surface-2: #f9fafb;
+      --text: #1a202c;
+      --text-muted: #4a5568;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e0;
+      --primary: #1a365d;
+      --primary-hover: #2c5282;
+      --accent: #2b6cb0;
+      --shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+      --radius: 4px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+              "Helvetica Neue", Arial, sans-serif;
+      --mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
     }
 
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
-        --color-bg: #0f1419;
-        --color-surface: #1a202c;
-        --color-surface-2: #2d3748;
-        --color-text: #e2e8f0;
-        --color-text-muted: #a0aec0;
-        --color-border: #2d3748;
-        --color-border-strong: #4a5568;
-        --color-primary: #63b3ed;
-        --color-primary-hover: #90cdf4;
-        --color-accent: #4299e1;
+        --bg: #0f1419;
+        --surface: #1a202c;
+        --surface-2: #2d3748;
+        --text: #e2e8f0;
+        --text-muted: #a0aec0;
+        --border: #2d3748;
+        --border-strong: #4a5568;
+        --primary: #63b3ed;
+        --primary-hover: #90cdf4;
+        --accent: #4299e1;
       }
     }
-
     [data-theme="dark"] {
-      --color-bg: #0f1419;
-      --color-surface: #1a202c;
-      --color-surface-2: #2d3748;
-      --color-text: #e2e8f0;
-      --color-text-muted: #a0aec0;
-      --color-border: #2d3748;
-      --color-border-strong: #4a5568;
-      --color-primary: #63b3ed;
-      --color-primary-hover: #90cdf4;
-      --color-accent: #4299e1;
+      --bg: #0f1419;
+      --surface: #1a202c;
+      --surface-2: #2d3748;
+      --text: #e2e8f0;
+      --text-muted: #a0aec0;
+      --border: #2d3748;
+      --border-strong: #4a5568;
+      --primary: #63b3ed;
+      --primary-hover: #90cdf4;
+      --accent: #4299e1;
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: var(--font-sans);
-      font-size: 16px;
-      line-height: 1.5;
-      color: var(--color-text);
-      background: var(--color-bg);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.4;
+      color: var(--text);
+      background: var(--bg);
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
 
     .skip-link {
-      position: absolute;
-      left: -9999px;
-      top: 0;
-      background: var(--color-primary);
-      color: #fff;
-      padding: 8px 16px;
-      z-index: 100;
+      position: absolute; left: -9999px; top: 0;
+      background: var(--primary); color: #fff;
+      padding: 6px 12px; z-index: 100;
     }
     .skip-link:focus { left: 8px; top: 8px; }
 
-    .container {
-      max-width: 760px;
-      margin: 0 auto;
-      padding: 0 24px;
+    /* =================================================================
+       Banner — pinned at top, professional and compact
+       ================================================================= */
+    .banner {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow);
     }
 
-    /* ---- Top bar ----------------------------------------------------- */
-    .top-bar {
-      background: var(--color-surface);
-      border-bottom: 1px solid var(--color-border);
-      padding: 16px 0;
-    }
-    .top-bar__inner {
+    .banner__inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 10px 20px;
       display: flex;
-      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      position: relative;
+    }
+
+    .banner__icon {
+      flex-shrink: 0;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+    }
+
+    .banner__content {
+      flex: 1;
+      min-width: 0;          /* allow the flex child to shrink so URLs wrap */
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .banner__row1,
+    .banner__row2 {
+      display: flex;
       align-items: center;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 8px;
+      min-width: 0;
     }
-    .brand {
-      display: inline-flex;
+    .banner__row1 { font-size: 0.95rem; }
+    .banner__row2 { font-size: 0.85rem; }
+
+    .banner__row1 strong { color: var(--text); font-weight: 600; }
+
+    .banner__sep {
+      color: var(--text-muted);
+      opacity: 0.5;
+      user-select: none;
+    }
+
+    .url {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--accent);
+      text-decoration: none;
+      word-break: break-all;
+      max-width: 100%;
+    }
+    .url:hover { text-decoration: underline; }
+
+    .banner__actions {
+      flex-shrink: 0;
+      display: flex;
       align-items: center;
       gap: 10px;
-      color: var(--color-primary);
-      font-weight: 600;
-      font-size: 0.95rem;
-      letter-spacing: 0.025em;
-    }
-    .brand__mark { flex-shrink: 0; }
-    .top-bar__controls {
-      display: inline-flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .lang-select,
-    .theme-select {
-      font-family: inherit;
-      font-size: 0.85rem;
-      padding: 6px 10px;
-      background: var(--color-surface);
-      color: var(--color-text);
-      border: 1px solid var(--color-border-strong);
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-    }
-    .lang-select:focus,
-    .theme-select:focus {
-      outline: 2px solid var(--color-accent);
-      outline-offset: 1px;
     }
 
-    /* ---- Main / cards ------------------------------------------------ */
-    .main {
-      padding: 40px 24px 24px;
+    /* Variant C: left accent bar in the formal palette */
+    .variant-c .banner__accent {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+      background: var(--primary);
     }
-    .card {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-md);
-      padding: 32px;
-      margin-bottom: 20px;
-    }
-
-    .notice-card { position: relative; }
-    .notice-card__icon {
-      color: var(--color-primary);
-      margin-bottom: 16px;
-    }
-    .notice-card__header {
-      display: flex;
-      gap: 20px;
-      align-items: flex-start;
-      margin-bottom: 16px;
-    }
-    .notice-card__header .notice-card__icon { margin-bottom: 0; }
-    h1 {
-      font-size: 1.75rem;
-      line-height: 1.25;
-      margin: 0 0 8px;
-      color: var(--color-text);
-      letter-spacing: -0.01em;
-    }
-    .notice-card__lede {
-      font-size: 1.1rem;
-      color: var(--color-text-muted);
-      margin: 0 0 20px;
-    }
-    .notice-card__description {
-      color: var(--color-text-muted);
-      margin: 0 0 20px;
-    }
-    h2 {
-      font-size: 1.15rem;
-      margin: 0 0 8px;
-      color: var(--color-text);
-    }
-    h3 {
-      font-size: 1rem;
-      margin: 0 0 8px;
-      color: var(--color-text);
-    }
-
-    /* ---- URL box ----------------------------------------------------- */
-    .url-box {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px;
-      padding: 14px 16px;
-      background: var(--color-surface-2);
-      border: 1px solid var(--color-border-strong);
-      border-radius: var(--radius-md);
-      margin: 12px 0;
-    }
-    .url-box__label {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.075em;
-      color: var(--color-text-muted);
-      font-weight: 600;
-      margin-right: 4px;
-    }
-    .url-box__link {
-      flex: 1;
-      min-width: 240px;
-      font-family: var(--font-mono);
-      font-size: 0.9rem;
-      color: var(--color-accent);
-      word-break: break-all;
-      text-decoration: none;
-    }
-    .url-box__link:hover { text-decoration: underline; }
-    .url-box__copy {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      font-family: inherit;
-      font-size: 0.85rem;
-      background: var(--color-surface);
-      color: var(--color-text);
-      border: 1px solid var(--color-border-strong);
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    .url-box__copy:hover {
-      background: var(--color-surface-2);
-      border-color: var(--color-primary);
-    }
-    .url-box__copy:focus {
-      outline: 2px solid var(--color-accent);
-      outline-offset: 1px;
-    }
-
-    /* ---- Countdown --------------------------------------------------- */
-    .countdown {
-      margin: 24px 0;
-      padding: 16px 20px;
-      background: var(--color-surface-2);
-      border-left: 4px solid var(--color-primary);
-      border-radius: var(--radius-sm);
-      font-size: 1rem;
-      color: var(--color-text);
-    }
-    .countdown__num {
-      display: inline-block;
-      min-width: 1.5em;
-      text-align: center;
+    .variant-c .eyebrow {
+      font-size: 0.7rem;
       font-weight: 700;
-      font-size: 1.5em;
-      color: var(--color-primary);
-      font-variant-numeric: tabular-nums;
-      margin: 0 4px;
-    }
-    .countdown--formal {
-      text-align: center;
-      border-left: none;
-      border-top: 2px solid var(--color-primary);
-      border-bottom: 2px solid var(--color-primary);
-      border-radius: 0;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
     }
 
-    /* ---- Buttons ----------------------------------------------------- */
-    .actions {
-      margin: 24px 0;
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
+    .countdown {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 1.05rem;
+      min-width: 2.5em;
+      text-align: right;
     }
+    .countdown .muted {
+      font-weight: 400;
+      font-size: 0.85rem;
+      margin-left: 1px;
+    }
+
+    /* ---- Buttons ---------------------------------------------------- */
     .btn {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 12px 24px;
+      gap: 6px;
+      padding: 7px 14px;
       font-family: inherit;
-      font-size: 0.95rem;
+      font-size: 0.85rem;
       font-weight: 600;
-      border-radius: var(--radius-md);
+      border-radius: var(--radius);
       cursor: pointer;
       text-decoration: none;
       border: 1px solid transparent;
-      transition: background 0.15s, transform 0.05s;
+      white-space: nowrap;
+      transition: background 0.12s;
     }
-    .btn:active { transform: translateY(1px); }
     .btn--primary {
-      background: var(--color-primary);
+      background: var(--primary);
       color: #fff;
-      border-color: var(--color-primary);
+      border-color: var(--primary);
     }
     .btn--primary:hover {
-      background: var(--color-primary-hover);
-      border-color: var(--color-primary-hover);
+      background: var(--primary-hover);
+      border-color: var(--primary-hover);
     }
-    .btn:focus {
-      outline: 2px solid var(--color-accent);
-      outline-offset: 2px;
-    }
+    .btn:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-    /* ---- Bookmark block ---------------------------------------------- */
-    .bookmark-block {
-      margin: 24px 0;
-      padding: 20px;
-      background: var(--color-surface-2);
-      border-radius: var(--radius-md);
-      border: 1px dashed var(--color-border-strong);
-    }
-    .bookmark-shortcut {
-      margin: 8px 0;
+    .btn-mini {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-    }
-    kbd {
-      display: inline-block;
-      padding: 4px 8px;
-      font-family: var(--font-mono);
-      font-size: 0.85rem;
-      background: var(--color-surface);
-      border: 1px solid var(--color-border-strong);
-      border-radius: var(--radius-sm);
-      box-shadow: 0 1px 0 var(--color-border-strong);
-    }
-    .bookmarklet-hint {
-      margin: 12px 0 6px;
-      font-size: 0.9rem;
-      color: var(--color-text-muted);
-    }
-    .bookmarklet {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 14px;
-      background: var(--color-primary);
-      color: #fff;
-      border-radius: var(--radius-sm);
-      text-decoration: none;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: grab;
-      user-select: none;
-    }
-    .bookmarklet:hover { background: var(--color-primary-hover); }
-    .bookmarklet:active { cursor: grabbing; }
-
-    /* ---- Don't show again ------------------------------------------- */
-    .dont-show-again {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 20px 0 4px;
-      cursor: pointer;
-      font-size: 0.95rem;
-    }
-    .dont-show-again input { cursor: pointer; }
-    .dont-show-again__hint {
-      margin: 0 0 8px 24px;
-      font-size: 0.85rem;
-    }
-
-    /* ---- Variant B specifics ---------------------------------------- */
-    .legacy-row {
-      padding: 8px 0;
-      font-size: 0.9rem;
-      color: var(--color-text-muted);
-    }
-    .legacy-row code {
-      font-family: var(--font-mono);
-      color: var(--color-text);
-    }
-    .steps {
-      list-style: none;
-      counter-reset: step;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
       padding: 0;
-      margin: 16px 0;
-    }
-    .steps li {
-      counter-increment: step;
-      padding: 16px 0 16px 56px;
-      border-top: 1px solid var(--color-border);
-      position: relative;
-    }
-    .steps li:first-child { border-top: none; }
-    .steps li::before {
-      content: counter(step);
-      position: absolute;
-      left: 0;
-      top: 16px;
-      width: 36px;
-      height: 36px;
-      background: var(--color-primary);
-      color: #fff;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 1rem;
-    }
-    .steps li strong { display: block; margin-bottom: 8px; color: var(--color-text); }
-
-    /* ---- Variant C (formal) ----------------------------------------- */
-    .variant-c .formal-header {
-      display: flex;
-      gap: 20px;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-    .variant-c .formal-seal {
-      flex-shrink: 0;
-      color: var(--color-primary);
-      width: 64px;
-      height: 64px;
-      border: 2px solid var(--color-primary);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .variant-c .formal-seal svg { width: 36px; height: 36px; }
-    .variant-c .formal-eyebrow {
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.15em;
-      color: var(--color-text-muted);
-      margin: 0 0 4px;
-    }
-    .variant-c .formal-divider {
-      height: 2px;
-      background: var(--color-primary);
-      margin: 16px 0;
-    }
-    .formal-grid {
-      display: grid;
-      grid-template-columns: max-content 1fr;
-      gap: 8px 16px;
-      margin: 16px 0;
-      font-size: 0.95rem;
-    }
-    .formal-grid dt {
-      font-weight: 600;
-      color: var(--color-text-muted);
-      text-transform: uppercase;
-      font-size: 0.75rem;
-      letter-spacing: 0.075em;
-      align-self: center;
-    }
-    .formal-grid dd { margin: 0; }
-    .formal-grid dd code {
-      font-family: var(--font-mono);
-      font-size: 0.85rem;
-      padding: 2px 6px;
-      background: var(--color-surface-2);
-      border-radius: var(--radius-sm);
-    }
-
-    /* ---- Help / footer ---------------------------------------------- */
-    .help-card { font-size: 0.95rem; }
-    .help-card__contact { margin-top: 12px; }
-    .help-card__contact a {
-      color: var(--color-accent);
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      cursor: pointer;
       text-decoration: none;
+      transition: background 0.12s, border-color 0.12s;
     }
-    .help-card__contact a:hover { text-decoration: underline; }
+    .btn-mini:hover {
+      background: var(--surface);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .btn-mini:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .btn-mini[id="bookmarklet"] { cursor: grab; }
+    .btn-mini[id="bookmarklet"]:active { cursor: grabbing; }
 
-    .footer {
-      margin-top: 32px;
-      padding: 16px 0;
-      border-top: 1px solid var(--color-border);
-      font-size: 0.85rem;
-      color: var(--color-text-muted);
+    /* ---- Inline controls (lang / theme) ----------------------------- */
+    .controls {
+      display: flex;
+      gap: 4px;
     }
-    .footer__inner {
+    .ctrl-select {
+      font-family: inherit;
+      font-size: 0.75rem;
+      padding: 4px 6px;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      cursor: pointer;
+      min-width: 38px;
+    }
+    .ctrl-select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+    /* ---- Footer row (don't-show-again + brand) ---------------------- */
+    .banner__footer {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 4px 20px 8px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 12px;
       flex-wrap: wrap;
-      gap: 8px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
     }
-    .footer__meta {
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      opacity: 0.6;
+    .dsa {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .dsa input { cursor: pointer; }
+    .org-badge {
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-size: 0.7rem;
     }
 
-    /* ---- Toast notifications ---------------------------------------- */
+    /* ---- Inline bookmark / hint ------------------------------------- */
+    .bookmark-hint kbd {
+      display: inline-block;
+      padding: 1px 5px;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: 3px;
+      box-shadow: 0 1px 0 var(--border-strong);
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      padding: 1px 4px;
+      background: var(--surface-2);
+      border-radius: 3px;
+    }
+
+    /* ---- Page body below banner ------------------------------------- */
+    .page-body {
+      padding: 12px 20px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    .muted { color: var(--text-muted); }
+    .small { font-size: 0.78rem; }
+    .sep { margin: 0 6px; opacity: 0.6; }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    a:hover { text-decoration: underline; }
+
+    /* =================================================================
+       Toast
+       ================================================================= */
     .toast {
       position: fixed;
-      bottom: 24px;
+      bottom: 16px;
       left: 50%;
       transform: translateX(-50%);
-      background: var(--color-primary);
+      background: var(--primary);
       color: #fff;
-      padding: 12px 20px;
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-md);
+      padding: 8px 14px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
       z-index: 1000;
       opacity: 0;
+      font-size: 0.85rem;
       transition: opacity 0.2s;
     }
-    .toast.show {
-      opacity: 1;
+    .toast.show { opacity: 1; }
+
+    /* =================================================================
+       Responsive — stack actions on narrow viewports
+       ================================================================= */
+    @media (max-width: 860px) {
+      .banner__inner {
+        flex-wrap: wrap;
+        padding: 10px 14px;
+      }
+      .banner__icon { display: none; }
+      .banner__actions {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .controls { margin-left: auto; }
     }
 
-    .muted { color: var(--color-text-muted); font-size: 0.9rem; }
-
-    /* ---- Responsive --------------------------------------------------- */
-    @media (max-width: 600px) {
-      h1 { font-size: 1.5rem; }
-      .card { padding: 24px 20px; }
-      .url-box { flex-direction: column; align-items: stretch; }
-      .url-box__copy { justify-content: center; }
-      .notice-card__header { flex-direction: column; }
-      .steps li { padding-left: 0; padding-top: 56px; }
-      .steps li::before { top: 16px; left: 0; }
-      .actions .btn { flex: 1; justify-content: center; }
+    @media (max-width: 520px) {
+      body { font-size: 13px; }
+      .banner__row1 { font-size: 0.9rem; }
+      .banner__row2 { font-size: 0.8rem; }
+      .bookmark-hint { display: none; }
+      .url { font-size: 0.78rem; }
+      .btn { padding: 6px 10px; font-size: 0.8rem; }
     }
 
-    /* ---- Reduced motion --------------------------------------------- */
     @media (prefers-reduced-motion: reduce) {
-      * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+      * { transition-duration: 0.01ms !important; }
     }
 
-    /* ---- Print -------------------------------------------------------- */
     @media print {
-      .top-bar__controls, .actions, .toast { display: none; }
-      .card { box-shadow: none; border: 1px solid #999; }
+      .banner__actions, .toast, .controls { display: none; }
     }
   `;
 }
@@ -968,19 +704,16 @@ function clientScript(o: ScriptOpts): string {
       var LANGUAGE = "${o.language}";
       var COPIED_MSG = "${o.copiedMessage}";
 
-      // --- Honor saved "don't show again" preference ---------------------
       try {
         if (window.localStorage && localStorage.getItem(STORAGE_KEY) === 'true') {
           recordBeacon('redirect_skipped');
           window.location.replace(NEW_URL);
           return;
         }
-      } catch (e) { /* localStorage may be unavailable; ignore */ }
+      } catch (e) { /* localStorage unavailable */ }
 
-      // --- Record splash shown -------------------------------------------
       recordBeacon('splash_shown');
 
-      // --- Countdown ------------------------------------------------------
       var count = INITIAL_COUNT;
       var countEl = document.getElementById('countdown');
       var redirected = false;
@@ -995,7 +728,6 @@ function clientScript(o: ScriptOpts): string {
         }
       }, 1000);
 
-      // --- Manual redirect button ----------------------------------------
       var goNow = document.getElementById('go-now');
       if (goNow) {
         goNow.addEventListener('click', function() {
@@ -1007,7 +739,6 @@ function clientScript(o: ScriptOpts): string {
         });
       }
 
-      // --- Copy URL button -----------------------------------------------
       var copyBtn = document.getElementById('copy-url');
       if (copyBtn) {
         copyBtn.addEventListener('click', function() {
@@ -1018,16 +749,13 @@ function clientScript(o: ScriptOpts): string {
         });
       }
 
-      // --- Bookmarklet click ---------------------------------------------
       var bookmarklet = document.getElementById('bookmarklet');
       if (bookmarklet) {
-        bookmarklet.addEventListener('click', function(e) {
-          // Allow the natural behavior but track it
+        bookmarklet.addEventListener('click', function() {
           recordBeacon('bookmark_clicked');
         });
       }
 
-      // --- "Don't show again" checkbox -----------------------------------
       var hideCheckbox = document.getElementById('hide-splash');
       if (hideCheckbox) {
         hideCheckbox.addEventListener('change', function(e) {
@@ -1042,7 +770,6 @@ function clientScript(o: ScriptOpts): string {
         });
       }
 
-      // --- Language selector ---------------------------------------------
       var langSelect = document.getElementById('lang-select');
       if (langSelect) {
         langSelect.addEventListener('change', function(e) {
@@ -1053,10 +780,8 @@ function clientScript(o: ScriptOpts): string {
         });
       }
 
-      // --- Theme selector ------------------------------------------------
       var themeSelect = document.getElementById('theme-select');
       if (themeSelect) {
-        // Initialize from current
         var current = document.documentElement.getAttribute('data-theme') || 'auto';
         themeSelect.value = current;
         themeSelect.addEventListener('change', function(e) {
@@ -1071,12 +796,10 @@ function clientScript(o: ScriptOpts): string {
         });
       }
 
-      // --- Helpers --------------------------------------------------------
       function copyToClipboard(text) {
         if (navigator.clipboard && navigator.clipboard.writeText) {
           return navigator.clipboard.writeText(text);
         }
-        // Fallback for older browsers
         return new Promise(function(resolve) {
           var ta = document.createElement('textarea');
           ta.value = text;
@@ -1120,7 +843,7 @@ function clientScript(o: ScriptOpts): string {
               keepalive: true
             }).catch(function() {});
           }
-        } catch (e) { /* ignore beacon failures */ }
+        } catch (e) { /* ignore */ }
       }
     })();
   `;

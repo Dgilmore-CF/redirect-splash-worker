@@ -85,9 +85,11 @@ describe('redirect-splash worker', () => {
         headers: { host: LAB_HR_HOST },
       });
       const body = await res.text();
-      // Use a phrase that appears in the subheading body (not in the eyebrow
-      // that variant C uppercases) so the assertion works across variants.
-      expect(body).toContain('se ha trasladado');
+      // "Nueva URL" appears in row2 of every variant (not uppercased)
+      // and is the same Spanish label across all three layouts.
+      expect(body).toContain('Nueva URL');
+      // Also verify the page title (always present) uses the Spanish form.
+      expect(body).toContain('Aviso de servicio');
       expect(res.headers.get('x-redirect-splash-lang')).toBe('es');
     });
 
