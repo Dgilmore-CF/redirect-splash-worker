@@ -127,10 +127,13 @@ fi
 # -----------------------------------------------------------------------
 if [ "$SKIP_SIM" = false ]; then
   log "Deploying simulation worker (--env simulation)"
-  if grep -q '<YOUR_ZONE_ID>' wrangler.jsonc; then
-    warn "wrangler.jsonc still contains <YOUR_ZONE_ID> placeholder."
+  # Only flag the placeholder when it appears in an actual config value
+  # (not in a // comment). We grep for the exact pattern used in `"zone_id": "<YOUR_ZONE_ID>"`.
+  if grep -E '"zone_id"\s*:\s*"<YOUR_ZONE_ID>"' wrangler.jsonc >/dev/null; then
+    warn "wrangler.jsonc still has <YOUR_ZONE_ID> as a zone_id value."
     warn "Edit wrangler.jsonc and replace it with your real dtg-lab.net zone ID,"
-    warn "then re-run with --skip-sim to skip this step, or fill it in to proceed."
+    warn "then re-run. Alternatively, run with --skip-sim to deploy only the"
+    warn "splash worker without the simulation portals."
     fatal "Cannot deploy simulation worker until zone ID is set."
   fi
   $WRANGLER deploy --env simulation

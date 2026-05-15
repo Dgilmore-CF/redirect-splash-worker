@@ -2,10 +2,23 @@
 #
 # setup-dns.sh
 # ------------
-# Creates the placeholder DNS records the Workers need to attach to.
-# Custom Domains require a proxied record to exist before they can be
-# bound. We create lightweight A records pointing to 192.0.2.1 (TEST-NET-1)
-# which is unroutable — the Worker takes over before any IP traffic flows.
+# Creates the placeholder DNS records the simulation worker (Routes-based)
+# needs to attach to. We create lightweight A records pointing to
+# 192.0.2.1 (TEST-NET-1) which is unroutable — the Worker takes over
+# before any IP traffic flows.
+#
+# IMPORTANT: We DO NOT create records for the legacy hostnames (hr.dtg-lab.net,
+# fs.gmis.dtg-lab.net) because the splash worker attaches via Custom Domains,
+# which means Cloudflare creates and manages the DNS records itself. A
+# pre-existing record on those hosts will *block* the Custom Domain attachment.
+#
+# Hostnames managed here (simulation worker Routes):
+#   - hcmx.gmis.dtg-lab.net
+#   - fscmx.gmis.dtg-lab.net
+#
+# Hostnames managed by Cloudflare automatically (splash worker Custom Domains):
+#   - hr.dtg-lab.net           ← do not create a record here
+#   - fs.gmis.dtg-lab.net      ← do not create a record here
 #
 # Required environment:
 #   CLOUDFLARE_API_TOKEN   API token with Zone.DNS:Edit on the target zone
@@ -22,9 +35,9 @@ set -euo pipefail
 : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN must be set}"
 : "${LAB_ZONE_ID:?LAB_ZONE_ID must be set}"
 
+# Only destination/simulation hostnames — the splash worker hosts use
+# Custom Domains so Cloudflare creates those records itself.
 HOSTS=(
-  "hr.dtg-lab.net"
-  "fs.gmis.dtg-lab.net"
   "hcmx.gmis.dtg-lab.net"
   "fscmx.gmis.dtg-lab.net"
 )

@@ -4,6 +4,8 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-05-15",
   "compatibility_flags": ["nodejs_compat"],
+  // DTG Lab account (not the FEDRAMP one). Override with CLOUDFLARE_ACCOUNT_ID env var if needed.
+  "account_id": "430470778f0d9dbd89d3d69637b2ae9d",
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1
@@ -13,7 +15,6 @@
   // Default environment: Lab (DTG Lab)
   // ============================================================
   // To deploy to lab: `wrangler deploy`
-  // Replace <YOUR_ZONE_ID> with your dtg-lab.net zone ID
   // ============================================================
   "routes": [
     {
@@ -82,6 +83,10 @@
     // ============================================================
     // This deploys the simulation pages so you can test the full
     // user journey. Deploy with: `wrangler deploy --env simulation`
+    //
+    // Note: this uses a different `main` entry point (simulation.ts)
+    // so it does not need the splash worker's vars (countdown, etc.)
+    // or the analytics binding.
     // ============================================================
     "simulation": {
       "name": "redirect-splash-simulation",
@@ -89,16 +94,25 @@
       "routes": [
         {
           "pattern": "hcmx.gmis.dtg-lab.net/*",
-          "zone_id": "<YOUR_ZONE_ID>"
+          "zone_id": "6f981de3d6d010bcfc80b0f3ccad7e29"
         },
         {
           "pattern": "fscmx.gmis.dtg-lab.net/*",
-          "zone_id": "<YOUR_ZONE_ID>"
+          "zone_id": "6f981de3d6d010bcfc80b0f3ccad7e29"
         }
       ],
       "vars": {
-        "ENVIRONMENT": "simulation"
-      }
+        "ENVIRONMENT": "simulation",
+        // The next five vars are not used by simulation.ts but must
+        // be declared so wrangler doesn't warn about inheritance.
+        "COUNTDOWN_SECONDS": "0",
+        "ENABLE_AB_TESTING": "false",
+        "DEFAULT_LANGUAGE": "en",
+        "ORG_NAME": "DTG Lab Simulation",
+        "SUPPORT_EMAIL": "support@dtg-lab.net"
+      },
+      // No analytics for simulation portals
+      "analytics_engine_datasets": []
     }
   }
 }
