@@ -9,6 +9,12 @@ on:
 permissions:
   contents: read
 
+# Wrangler 4.x requires Node 22+; the modern wrangler.jsonc parser was
+# also introduced in 4.x, so older Node versions cause the deploy to
+# silently fall back to a Wrangler 3.x build that can't read the config.
+env:
+  NODE_VERSION: '22'
+
 jobs:
   test:
     name: Lint & Test
@@ -21,7 +27,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Install dependencies
