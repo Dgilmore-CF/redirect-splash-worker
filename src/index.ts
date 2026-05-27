@@ -103,6 +103,8 @@ export default {
     // -----------------------------------------------------------
     // 6. Render the splash page
     // -----------------------------------------------------------
+    const backgroundImageUrl = sanitizeImageUrl(env.BACKGROUND_IMAGE_URL);
+    const logoUrl = sanitizeImageUrl(env.LOGO_URL);
     const html = renderSplash({
       config,
       legacyHost,
@@ -112,6 +114,8 @@ export default {
       orgName: env.ORG_NAME,
       supportEmail: env.SUPPORT_EMAIL,
       theme,
+      backgroundImageUrl,
+      logoUrl,
     });
 
     return new Response(html, {
@@ -126,11 +130,14 @@ export default {
         'x-frame-options': 'DENY',
         'referrer-policy': 'no-referrer',
         // Conservative CSP — only inline styles & scripts (we ship both inline)
+        // img-src allows https: so customers can provide a background image
+        // or logo hosted on their own CDN. data: URIs also supported for
+        // small inline images. No other resource types can be loaded.
         'content-security-policy':
           "default-src 'none'; " +
           "style-src 'unsafe-inline'; " +
           "script-src 'unsafe-inline'; " +
-          "img-src data:; " +
+          "img-src 'self' data: https:; " +
           "connect-src 'self'; " +
           "form-action 'none'; " +
           "base-uri 'none'; " +
@@ -169,6 +176,27 @@ function appendForwardedParams(destination: string, source: URL, exclude: string
  */
 function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
+}
+
+/**
+ * Sanitize a customer-provided image URL.
+ *
+ * We only accept:
+ *   - https:// URLs (so customers can host wherever they like)
+ *   - data: URIs (for inline embedded images)
+ *
+ * Anything else (http:, javascript:, file:, etc.) is rejected and
+ * treated as if the URL was not configured. This keeps the CSP and
+ * the rendered HTML safe even if someone misconfigures the env var.
+ */
+function sanitizeImageUrl(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return undefined;
+  if (trimmed.startsWith('https://') || trimmed.startsWith('data:image/')) {
+    return trimmed;
+  }
+  return undefined;
 }
 
 /**

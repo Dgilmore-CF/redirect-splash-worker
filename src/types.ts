@@ -15,6 +15,22 @@ export interface Env {
   SUPPORT_EMAIL: string;
   ENVIRONMENT: string;
 
+  /**
+   * Optional background image URL displayed below the splash banner.
+   * Must be an HTTPS URL or a `data:` URI. Leave as an empty string to
+   * disable. Recommended dimensions: 1920x1080 or larger, file size
+   * <500 KB. The image is rendered with a translucent overlay so the
+   * banner stays legible against any photograph.
+   */
+  BACKGROUND_IMAGE_URL: string;
+
+  /**
+   * Optional logo URL shown in the banner footer (replaces the org-name
+   * text badge). Must be HTTPS or `data:`. Recommended height: 24px.
+   * Leave empty to use the text badge instead.
+   */
+  LOGO_URL: string;
+
   // Bindings
   ANALYTICS: AnalyticsEngineDataset;
 }
@@ -66,6 +82,10 @@ export interface SplashOptions {
   orgName: string;
   supportEmail: string;
   theme: 'light' | 'dark' | 'auto';
+  /** Optional full-page background image (HTTPS or data: URI). */
+  backgroundImageUrl?: string;
+  /** Optional logo image (HTTPS or data: URI). */
+  logoUrl?: string;
 }
 
 /**

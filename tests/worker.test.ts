@@ -212,6 +212,17 @@ describe('redirect-splash worker', () => {
       expect(csp).toContain("frame-ancestors 'none'");
     });
 
+    it('allows https images for customer branding', async () => {
+      const res = await SELF.fetch('http://localhost/', {
+        headers: { host: LAB_HR_HOST },
+      });
+      const csp = res.headers.get('content-security-policy');
+      // Customers need to be able to point at their own CDN-hosted logos
+      // and background images.
+      expect(csp).toContain('img-src');
+      expect(csp).toContain('https:');
+    });
+
     it('sets X-Frame-Options DENY', async () => {
       const res = await SELF.fetch('http://localhost/', {
         headers: { host: LAB_HR_HOST },
@@ -225,6 +236,42 @@ describe('redirect-splash worker', () => {
       });
       const body = await res.text();
       expect(body).toContain('noindex');
+    });
+  });
+
+  // -------------------------------------------------------------------
+  // Branding (optional background image + logo) tests
+  // -------------------------------------------------------------------
+  // The deployed binding for BACKGROUND_IMAGE_URL / LOGO_URL is empty
+  // by default, so when the worker is invoked without configured branding
+  // we should NOT see the has-bg class or any background-image style on
+  // the body element. These tests cover the default (off) state.
+  describe('branding (defaults off)', () => {
+    it('does not render a background image when no URL is configured', async () => {
+      const res = await SELF.fetch('http://localhost/', {
+        headers: { host: LAB_HR_HOST },
+      });
+      const html = await res.text();
+
+      // Inspect the <body> tag specifically — the CSS section legitimately
+      // mentions the has-bg class in comments and selectors, so we need a
+      // precise match on the rendered element rather than a substring search.
+      const bodyTag = html.match(/<body[^>]*>/)?.[0] ?? '';
+      expect(bodyTag).not.toContain('has-bg');
+      // The CSS variable should not be set on the body when no image is
+      // configured (the style attribute should be absent entirely).
+      expect(bodyTag).not.toContain('--bg-image');
+    });
+
+    it('does not render an <img> logo when no logo URL is configured', async () => {
+      const res = await SELF.fetch('http://localhost/', {
+        headers: { host: LAB_HR_HOST },
+      });
+      const html = await res.text();
+      // Falls back to the text badge with the org name.
+      expect(html).toContain('class="muted small org-badge"');
+      // No <img> element with org-logo class should be rendered.
+      expect(html).not.toMatch(/<img[^>]*class="org-logo"/);
     });
   });
 });

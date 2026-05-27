@@ -33,7 +33,11 @@
     "DEFAULT_LANGUAGE": "en",
     "ORG_NAME": "DTG Lab",
     "SUPPORT_EMAIL": "support@dtg-lab.net",
-    "ENVIRONMENT": "lab"
+    "ENVIRONMENT": "lab",
+    // Optional branding. Leave empty to disable.
+    // Must be an https:// URL or a data:image/...;base64,... URI.
+    "BACKGROUND_IMAGE_URL": "",
+    "LOGO_URL": ""
   },
 
   // Analytics Engine binding for tracking redirect events
@@ -69,7 +73,9 @@
         "DEFAULT_LANGUAGE": "en",
         "ORG_NAME": "Your Organization",
         "SUPPORT_EMAIL": "helpdesk@example.com",
-        "ENVIRONMENT": "production"
+        "ENVIRONMENT": "production",
+        "BACKGROUND_IMAGE_URL": "",
+        "LOGO_URL": ""
       },
       "analytics_engine_datasets": [
         {
@@ -103,13 +109,15 @@
       ],
       "vars": {
         "ENVIRONMENT": "simulation",
-        // The next five vars are not used by simulation.ts but must
+        // The next vars are not used by simulation.ts but must
         // be declared so wrangler doesn't warn about inheritance.
         "COUNTDOWN_SECONDS": "0",
         "ENABLE_AB_TESTING": "false",
         "DEFAULT_LANGUAGE": "en",
         "ORG_NAME": "DTG Lab Simulation",
-        "SUPPORT_EMAIL": "support@dtg-lab.net"
+        "SUPPORT_EMAIL": "support@dtg-lab.net",
+        "BACKGROUND_IMAGE_URL": "",
+        "LOGO_URL": ""
       },
       // No analytics for simulation portals
       "analytics_engine_datasets": []

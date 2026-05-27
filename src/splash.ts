@@ -37,6 +37,20 @@ export function renderSplash(opts: SplashOptions): string {
   const themeAttr = theme === 'auto' ? '' : ` data-theme="${theme}"`;
   const storageKey = `redirectSplash:hide:${legacyHost}`;
 
+  // Optional branding inputs are sanitized by index.ts before we get here
+  // — they are guaranteed to be either undefined or a safe https:/data: URL.
+  // We still escape for HTML / CSS output as defense-in-depth.
+  //
+  // The URL is embedded inside a CSS url('...') inside an inline style
+  // attribute (style="..."). Using single quotes inside url() keeps the
+  // outer double-quoted HTML attribute valid.
+  const bgUrl = opts.backgroundImageUrl
+    ? escapeCssUrlInner(opts.backgroundImageUrl)
+    : null;
+  const logoUrl = opts.logoUrl ? escapeHtml(opts.logoUrl) : null;
+  const bodyClass = bgUrl ? 'has-bg' : '';
+  const bodyStyle = bgUrl ? ` style="--bg-image:url('${bgUrl}')"` : '';
+
   return `<!DOCTYPE html>
 <html lang="${opts.language}"${themeAttr}>
 <head>
@@ -47,7 +61,7 @@ export function renderSplash(opts: SplashOptions): string {
   <title>${escapeHtml(format(t.pageTitle, { serviceName: config.serviceName }))}</title>
   <style>${styles()}</style>
 </head>
-<body data-variant="${variant}">
+<body data-variant="${variant}" class="${bodyClass}"${bodyStyle}>
   <a href="#main" class="skip-link">Skip to main content</a>
 
   <div class="banner" role="alert" aria-labelledby="banner-title">
@@ -61,6 +75,7 @@ export function renderSplash(opts: SplashOptions): string {
       orgName: orgNameHtml,
       supportEmail: supportEmailHtml,
       language: opts.language,
+      logoUrl,
     })}
   </div>
 
@@ -101,6 +116,7 @@ interface VariantContext {
   orgName: string;
   supportEmail: string;
   language: SupportedLanguage;
+  logoUrl: string | null;
 }
 
 function renderVariant(variant: 'A' | 'B' | 'C', ctx: VariantContext): string {
@@ -221,13 +237,16 @@ function variantC(ctx: VariantContext): string {
 // ---------------------------------------------------------------------------
 
 function dontShowAgainRow(ctx: VariantContext): string {
+  const brand = ctx.logoUrl
+    ? `<img class="org-logo" src="${ctx.logoUrl}" alt="${ctx.orgName}" />`
+    : `<span class="muted small org-badge">${ctx.orgName}</span>`;
   return `
     <div class="banner__footer">
       <label class="dsa">
         <input type="checkbox" id="hide-splash">
         <span>${escapeHtml(ctx.t.dontShowAgain)}</span>
       </label>
-      <span class="muted small org-badge">${ctx.orgName}</span>
+      ${brand}
     </div>
   `;
 }
@@ -379,8 +398,59 @@ function styles(): string {
       line-height: 1.4;
       color: var(--text);
       background: var(--bg);
+      min-height: 100vh;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* =================================================================
+       Optional background image
+       Activated when the body has class="has-bg" and CSS variable
+       --bg-image is set on the body element. A translucent overlay
+       maintains banner contrast against any photograph.
+       ================================================================= */
+    body.has-bg {
+      background-image: var(--bg-image);
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+    }
+    /* Subtle overlay so background never overpowers the banner. */
+    body.has-bg::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(
+        180deg,
+        rgba(244, 245, 247, 0.92) 0,
+        rgba(244, 245, 247, 0.55) 240px,
+        rgba(244, 245, 247, 0.20) 100%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+    body.has-bg .banner,
+    body.has-bg .page-body,
+    body.has-bg .toast { position: relative; z-index: 1; }
+
+    @media (prefers-color-scheme: dark) {
+      body.has-bg:not([data-theme="light"])::before {
+        background: linear-gradient(
+          180deg,
+          rgba(15, 20, 25, 0.92) 0,
+          rgba(15, 20, 25, 0.65) 240px,
+          rgba(15, 20, 25, 0.35) 100%
+        );
+      }
+    }
+    body.has-bg[data-theme="dark"]::before {
+      background: linear-gradient(
+        180deg,
+        rgba(15, 20, 25, 0.92) 0,
+        rgba(15, 20, 25, 0.65) 240px,
+        rgba(15, 20, 25, 0.35) 100%
+      );
     }
 
     .skip-link {
@@ -582,6 +652,27 @@ function styles(): string {
       letter-spacing: 0.05em;
       text-transform: uppercase;
       font-size: 0.7rem;
+    }
+
+    /* Customer-provided logo. Rendered at a fixed height so the banner
+       footer keeps its compact dimensions regardless of source asset.
+       Inverted in dark mode so monochrome logos stay readable. */
+    .org-logo {
+      height: 22px;
+      width: auto;
+      max-width: 180px;
+      display: block;
+      opacity: 0.92;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .org-logo {
+        filter: brightness(0) invert(1);
+        opacity: 0.85;
+      }
+    }
+    [data-theme="dark"] .org-logo {
+      filter: brightness(0) invert(1);
+      opacity: 0.85;
     }
 
     /* ---- Inline bookmark / hint ------------------------------------- */
@@ -870,4 +961,30 @@ function escapeJs(s: string): string {
     .replace(/\r/g, '\\r')
     .replace(/</g, '\\u003c')
     .replace(/>/g, '\\u003e');
+}
+
+/**
+ * Escape a URL for safe inclusion inside a CSS `url('...')` literal.
+ *
+ * The URL is wrapped by the caller in single quotes inside `url()`,
+ * which is itself inside a double-quoted HTML `style="..."` attribute.
+ * That layered escaping means we only need to neutralise three things
+ * in the URL itself:
+ *
+ *   - `\`        — would interpret the next char as a CSS escape
+ *   - `'`        — would terminate the single-quoted string
+ *   - newlines   — would terminate the CSS string and break the page
+ *
+ * The URL is already validated by index.ts::sanitizeImageUrl (it must
+ * start with https:// or data:image/) so this is defense-in-depth.
+ *
+ * Note: we deliberately do NOT escape `;`, `)`, `>` or other characters
+ * that some legitimate URLs contain (e.g. data:image/png;base64,...).
+ */
+function escapeCssUrlInner(url: string): string {
+  return url
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, '')
+    .replace(/\r/g, '');
 }
